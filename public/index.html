@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>약체크 YakCheck — 약물 상호작용 검사</title>
+<meta name="description" content="식약처 공공데이터 기반 약물 상호작용 검사 서비스">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+/* ═══════════════════════════════════════════════════════
+   디자인 토큰 (design-spec.md §1)
+   ═══════════════════════════════════════════════════════ */
+:root {
+  /* Risk Level */
+  --risk-safe-bg:      #DCFCE7;
+  --risk-safe-border:  #22C55E;
+  --risk-safe-icon:    #16A34A;
+  --risk-safe-text:    #14532D;
+
+  --risk-caution-bg:      #FEF9C3;
+  --risk-caution-border:  #EAB308;
+  --risk-caution-icon:    #CA8A04;
+  --risk-caution-text:    #713F12;
+
+  --risk-danger-bg:      #FEE2E2;
+  --risk-danger-border:  #EF4444;
+  --risk-danger-icon:    #DC2626;
+  --risk-danger-text:    #7F1D1D;
+
+  --risk-forbidden-bg:      #F3E8FF;
+  --risk-forbidden-border:  #9333EA;
+  --risk-forbidden-icon:    #7E22CE;
+  --risk-forbidden-text:    #3B0764;
+
+  /* Brand */
+  --color-brand-50:  #EFF6FF;
+  --color-brand-500: #3B82F6;
+  --color-brand-600: #2563EB;
+  --color-brand-700: #1D4ED8;
+
+  /* Neutral */
+  --color-neutral-50:  #F9FAFB;
+  --color-neutral-100: #F3F4F6;
+  --color-neutral-200: #E5E7EB;
+  --color-neutral-300: #D1D5DB;
+  --color-neutral-400: #9CA3AF;
+  --color-neutral-500: #6B7280;
+  --color-neutral-600: #4B5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1F2937;
+  --color-neutral-900: #111827;
+
+  /* System States */
+  --color-info-bg:   #EFF6FF;
+  --color-info-icon: #3B82F6;
+  --color-info-text: #1E40AF;
+
+  --color-user-error-bg:   #FFF7ED;
+  --color-user-error-icon: #F97316;
+  --color-user-error-text: #9A3412;
+
+  --color-sys-error-bg:   #FFF1F2;
+  --color-sys-error-icon: #E11D48;
+  --color-sys-error-text: #881337;
+
+  --color-empty-bg:   #F9FAFB;
+  --color-empty-icon: #9CA3AF;
+  --color-empty-text: #4B5563;
+
+  /* Typography */
+  --font-sans: -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+
+  --font-normal:   400;
+  --font-medium:   500;
+  --font-semibold: 600;
+  --font-bold:     700;
+
+  --leading-tight:   1.25;
+  --leading-snug:    1.375;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.625;
+
+  --tracking-tight:  -0.025em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.025em;
+
+  /* Spacing */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Radius */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+
+  /* Animation durations */
+  --duration-fast:    100ms;
+  --duration-normal:  200ms;
+  --duration-slow:    300ms;
+
+  /* Easing */
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+  --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Icons */
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --icon-xl: 32px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Keyframes
+   ═══════════════════════════════════════════════════════ */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes chipIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes chipOut {
+  to { opacity: 0; transform: scale(0.8); max-width: 0; margin: 0; padding: 0; overflow: hidden; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+@keyframes resultCardIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes errorPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(225, 29, 72, 0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 600px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   prefers-reduced-motion
+   ═══════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:        0.01ms !important;
+    animation-iteration-count: 1      !important;
+    transition-duration:       0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Reset & Base
+   ═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-50);
+  line-height: var(--leading-normal);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Layout
+   ═══════════════════════════════════════════════════════ */
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+@media (min-width: 640px)  { .container { padding: 0 var(--space-6); } }
+
+/* ── Header ────────────────────────────────────────────── */
+.site-header {
+  background: white;
+  border-bottom: 1px solid var(--color-neutral-200);
+  padding: var(--space-4) 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-brand-600);
+  letter-spacing: var(--tracking-tight);
+}
+.logo-icon { width: 28px; height: 28px; }
+
+/* ── Main ───────────────────────────────────────────────── */
+main { flex: 1; padding: var(--space-12) 0 var(--space-16); }
+
+/* ── Hero ───────────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+.hero-title {
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-4xl));
+  font-weight: var(--font-bold);
+  color: var(--color-neutral-900);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-3);
+}
+.hero-sub {
+  font-size: var(--text-lg);
+  color: var(--color-neutral-500);
+  line-height: var(--leading-relaxed);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Search Bar
+   ═══════════════════════════════════════════════════════ */
+.search-section { margin-bottom: var(--space-8); }
+
+.search-bar {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 56px;
+  padding: 0 var(--space-4);
+  background: white;
+  border: 2px solid var(--color-neutral-200);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  transition:
+    border-color var(--duration-normal) var(--ease-in-out),
+    box-shadow   var(--duration-normal) var(--ease-in-out);
+}
+.search-input-wrapper:focus-within {
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15), var(--shadow-md);
+}
+.search-input-wrapper[data-state="SEARCH_USER_ERROR"] {
+  border-color: var(--color-user-error-icon);
+  animation: shake var(--duration-normal) var(--ease-in-out);
+}
+.search-input-wrapper[data-state="SEARCH_SYS_ERROR"] {
+  border-color: var(--color-sys-error-icon);
+  animation: errorPulse 1.5s ease-in-out 3;
+}
+
+.search-icon {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  color: var(--color-neutral-400);
+  display: flex; align-items: center; justify-content: center;
+}
+.search-icon.spinning svg { animation: spin 1s linear infinite; }
+.search-icon svg { width: 20px; height: 20px; }
+
+#search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  color: var(--color-neutral-900);
+  background: transparent;
+  min-width: 0;
+}
+#search-input::placeholder { color: var(--color-neutral-400); }
+
+.search-clear {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-500);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background var(--duration-fast);
+}
+.search-clear:hover { background: var(--color-neutral-300); color: var(--color-neutral-800); }
+.search-clear.visible { display: flex; }
+
+.search-submit {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 var(--space-4);
+  background: var(--color-brand-600);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background var(--duration-fast);
+  white-space: nowrap;
+}
+.search-submit:hover { background: var(--color-brand-700); }
+
+/* Dropdown */
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0; right: 0;
+  background: white;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow-y: auto;
+  max-height: 280px;
+  z-index: 200;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+  list-style: none;
+  padding: var(--space-2) 0;
+  display: none;
+}
+.search-dropdown.open { display: block; }
+
+.dd-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 48px;
+  padding: 0 var(--space-4);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+.dd-item:hover, .dd-item[aria-selected="true"] {
+  background: var(--color-brand-50);
+}
+.dd-item-icon { color: var(--color-brand-500); flex-shrink: 0; }
+.dd-item-icon svg { width: 16px; height: 16px; }
+.dd-item-name {
+  flex: 1;
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-800);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dd-item-name em {
+  font-style: normal;
+  font-weight: var(--font-bold);
+  color: var(--color-brand-600);
+}
+.dd-item-sub {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-400);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dd-empty, .dd-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+}
+.dd-empty svg { color: var(--color-empty-icon); }
+
+/* Search error below input */
+.search-error-area {
+  margin-top: var(--space-2);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Drug Chip List
+   ═══════════════════════════════════════════════════════ */
+.chip-section {
+  max-width: 640px;
+  margin: 0 auto var(--space-6);
+}
+.chip-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.chip-section-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-700);
+}
+.chip-clear-all {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast), background var(--duration-fast);
+  font-family: var(--font-sans);
+}
+.chip-clear-all:hover { color: var(--color-neutral-800); background: var(--color-neutral-100); }
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.drug-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: white;
+  border: 1.5px solid var(--color-neutral-200);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-700);
+  animation: chipIn var(--duration-normal) var(--ease-spring);
+  transition: background var(--duration-fast), border-color var(--duration-fast), box-shadow var(--duration-fast);
+  box-shadow: var(--shadow-sm);
+}
+.drug-chip:hover {
+  background: var(--color-neutral-50);
+  border-color: var(--color-neutral-300);
+  box-shadow: var(--shadow-md);
+}
+.drug-chip:focus-within {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+.chip-pill-icon { color: var(--color-brand-500); display: flex; align-items: center; }
+.chip-pill-icon svg { width: 14px; height: 14px; }
+.chip-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--color-neutral-400);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--duration-fast), color var(--duration-fast);
+  flex-shrink: 0;
+}
+.chip-remove:hover { background: var(--color-neutral-200); color: var(--color-neutral-700); }
+.chip-remove svg { width: 12px; height: 12px; }
+
+.drug-chip[data-state="CHIP_REMOVING"] {
+  animation: chipOut var(--duration-fast) var(--ease-in) forwards;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Analyze CTA
+   ═══════════════════════════════════════════════════════ */
+.analyze-section {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.analyze-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-info-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-neutral-200);
+}
+.analyze-hint svg { color: var(--color-info-icon); flex-shrink: 0; width: 16px; height: 16px; }
+
+#analyze-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 56px;
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-400);
+  border: none;
+  border-radius: var(--radius-xl);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-sans);
+  cursor: not-allowed;
+  transition: background var(--duration-normal), color var(--duration-normal), box-shadow var(--duration-normal);
+}
+#analyze-btn.active {
+  background: var(--color-brand-600);
+  color: white;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+#analyze-btn.active:hover { background: var(--color-brand-700); box-shadow: var(--shadow-lg); }
+#analyze-btn.loading {
+  background: var(--color-brand-500);
+  color: white;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+#analyze-btn svg { width: 20px; height: 20px; }
+#analyze-btn .spin-icon { animation: spin 1s linear infinite; }
+
+/* ═══════════════════════════════════════════════════════
+   Results Section
+   ═══════════════════════════════════════════════════════ */
+#results {
+  max-width: 800px;
+  margin: var(--space-8) auto 0;
+  display: none;
+  animation: fadeIn var(--duration-slow) var(--ease-out);
+}
+#results.visible { display: block; }
+
+/* Overall badge */
+.overall-banner {
+  border-radius: var(--radius-xl);
+  border: 2px solid;
+  padding: var(--space-6) var(--space-8);
+  text-align: center;
+  margin-bottom: var(--space-6);
+  animation: resultCardIn var(--duration-slow) var(--ease-out);
+}
+.overall-banner--safe      { background: var(--risk-safe-bg);      border-color: var(--risk-safe-border); }
+.overall-banner--caution   { background: var(--risk-caution-bg);   border-color: var(--risk-caution-border); }
+.overall-banner--danger    { background: var(--risk-danger-bg);    border-color: var(--risk-danger-border); }
+.overall-banner--forbidden { background: var(--risk-forbidden-bg); border-color: var(--risk-forbidden-border); }
+
+.overall-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+.overall-icon svg { width: 40px; height: 40px; }
+.overall-banner--safe      .overall-icon svg { color: var(--risk-safe-icon); }
+.overall-banner--caution   .overall-icon svg { color: var(--risk-caution-icon); }
+.overall-banner--danger    .overall-icon svg { color: var(--risk-danger-icon); }
+.overall-banner--forbidden .overall-icon svg { color: var(--risk-forbidden-icon); }
+
+#overall {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-1);
+}
+.overall-banner--safe      #overall { color: var(--risk-safe-text); }
+.overall-banner--caution   #overall { color: var(--risk-caution-text); }
+.overall-banner--danger    #overall { color: var(--risk-danger-text); }
+.overall-banner--forbidden #overall { color: var(--risk-forbidden-text); }
+
+.overall-sub {
+  font-size: var(--text-sm);
+  opacity: 0.8;
+}
+
+/* Drug summary chips in result */
+.result-drug-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.result-drug-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  background: white;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+  font-weight: var(--font-medium);
+}
+.result-drug-tag svg { width: 12px; height: 12px; color: var(--color-brand-500); }
+
+/* Medical warning */
+.medical-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-icon);
+  border-radius: var(--radius-md);
+  color: var(--color-info-text);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-relaxed);
+}
+.medical-warning svg { color: var(--color-info-icon); flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; }
+
+/* Result cards */
+.results-section-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-800);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.results-section-title svg { width: 18px; height: 18px; color: var(--color-neutral-500); }
+
+.result-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+@media (min-width: 768px) {
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+.interaction-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--color-neutral-200);
+  border-left-width: 4px;
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  animation: resultCardIn var(--duration-slow) var(--ease-out);
+  transition: box-shadow var(--duration-normal);
+}
+.interaction-card:hover { box-shadow: var(--shadow-md); }
+.interaction-card--safe      { border-left-color: var(--risk-safe-border); }
+.interaction-card--caution   { border-left-color: var(--risk-caution-border); }
+.interaction-card--danger    { border-left-color: var(--risk-danger-border); }
+.interaction-card--forbidden { border-left-color: var(--risk-forbidden-border); }
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.card-drug-pair {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-800);
+  flex: 1;
+  min-width: 0;
+}
+.drug-pair-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+.pair-arrow { color: var(--color-neutral-400); flex-shrink: 0; display: flex; align-items: center; }
+.pair-arrow svg { width: 14px; height: 14px; }
+
+/* Risk Badge */
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1.5px solid;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.risk-badge svg { width: 12px; height: 12px; }
+.risk-badge--safe      { background: var(--risk-safe-bg);      border-color: var(--risk-safe-border);      color: var(--risk-safe-text); }
+.risk-badge--safe      svg { color: var(--risk-safe-icon); }
+.risk-badge--caution   { background: var(--risk-caution-bg);   border-color: var(--risk-caution-border);   color: var(--risk-caution-text); }
+.risk-badge--caution   svg { color: var(--risk-caution-icon); }
+.risk-badge--danger    { background: var(--risk-danger-bg);    border-color: var(--risk-danger-border);    color: var(--risk-danger-text); }
+.risk-badge--danger    svg { color: var(--risk-danger-icon); }
+.risk-badge--forbidden { background: var(--risk-forbidden-bg); border-color: var(--risk-forbidden-border); color: var(--risk-forbidden-text); }
+.risk-badge--forbidden svg { color: var(--risk-forbidden-icon); }
+
+.card-description {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-neutral-100);
+  flex-wrap: wrap;
+}
+.card-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-brand-600);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+}
+.card-source-link:hover { text-decoration: underline; }
+.card-source-link svg { width: 12px; height: 12px; }
+.fallback-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-500);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-neutral-100);
+  border-radius: var(--radius-full);
+}
+.fallback-badge svg { width: 10px; height: 10px; }
+
+.confidence-bar-wrap {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-400);
+}
+.confidence-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-200);
+  margin-top: 2px;
+  overflow: hidden;
+}
+.confidence-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--color-brand-500);
+  transition: width 0.5s var(--ease-out);
+}
+
+/* Reset button CTA area */
+.result-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Error Guide (2종 완전 분리)
+   ═══════════════════════════════════════════════════════ */
+.error-guide {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid;
+  margin-top: var(--space-4);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+.error-guide--user   { background: var(--color-user-error-bg); border-color: var(--color-user-error-icon); }
+.error-guide--system { background: var(--color-sys-error-bg);  border-color: var(--color-sys-error-icon);  animation: errorPulse 1.5s ease-in-out 3; }
+
+.error-guide-icon { flex-shrink: 0; }
+.error-guide-icon svg { width: 24px; height: 24px; }
+.error-guide--user   .error-guide-icon svg { color: var(--color-user-error-icon); }
+.error-guide--system .error-guide-icon svg { color: var(--color-sys-error-icon); }
+
+.error-guide-content { flex: 1; min-width: 0; }
+.error-guide-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-2);
+}
+.error-guide--user   .error-guide-title { color: var(--color-user-error-text); }
+.error-guide--system .error-guide-title { color: var(--color-sys-error-text); }
+
+.error-guide-desc {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+  line-height: var(--leading-relaxed);
+  margin-bottom: 0;
+}
+.error-guide-examples {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+.example-label { font-size: var(--text-xs); color: var(--color-neutral-500); }
+.example-chip {
+  padding: var(--space-1) var(--space-3);
+  background: white;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+.example-chip:hover { background: var(--color-brand-50); border-color: var(--color-brand-500); color: var(--color-brand-700); }
+.error-guide-actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); flex-wrap: wrap; }
+.error-guide-note { font-size: var(--text-xs); color: var(--color-neutral-500); margin-top: var(--space-2); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-sans);
+  transition: background var(--duration-fast), color var(--duration-fast);
+  text-decoration: none;
+}
+.btn svg { width: 16px; height: 16px; }
+.btn--primary { background: var(--color-brand-600); color: white; }
+.btn--primary:hover { background: var(--color-brand-700); }
+.btn--ghost {
+  background: transparent;
+  color: var(--color-neutral-600);
+  border: 1px solid var(--color-neutral-300);
+}
+.btn--ghost:hover { background: var(--color-neutral-100); }
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-neutral-800);
+  color: white;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-xl);
+  animation: fadeIn 0.2s ease-out;
+  pointer-events: auto;
+  max-width: 320px;
+}
+.toast svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════
+   Footer
+   ═══════════════════════════════════════════════════════ */
+.site-footer {
+  border-top: 1px solid var(--color-neutral-200);
+  padding: var(--space-6) 0;
+  background: white;
+  margin-top: auto;
+}
+.footer-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: center;
+  text-align: center;
+}
+.footer-inner svg { color: var(--color-neutral-400); flex-shrink: 0; width: 14px; height: 14px; }
+.footer-text {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-400);
+  line-height: var(--leading-relaxed);
+}
+
+/* ═══════════════════════════════════════════════════════
+   aria-live regions
+   ═══════════════════════════════════════════════════════ */
+#search-status, #analysis-status, #system-alert {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .search-bar { max-width: 100%; }
+  .search-submit { padding: 0 var(--space-3); }
+  .overall-banner { padding: var(--space-4) var(--space-5); }
+  #overall { font-size: var(--text-xl); }
+  .hero-title { font-size: var(--text-2xl); }
+  .toast-container { left: var(--space-4); right: var(--space-4); bottom: var(--space-4); }
+}
+</style>
+</head>
+<body>
+
+<!-- aria-live regions -->
+<div aria-live="polite"    aria-atomic="true" id="search-status"></div>
+<div aria-live="polite"    aria-atomic="true" id="analysis-status"></div>
+<div aria-live="assertive" aria-atomic="true" id="system-alert"></div>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="logo" aria-label="약체크 홈으로">
+        <svg class="logo-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="2" y="10" width="24" height="8" rx="4" fill="#2563EB"/>
+          <rect x="10" y="2" width="8" height="24" rx="4" fill="#2563EB" opacity="0.6"/>
+        </svg>
+        약체크
+      </a>
+      <span style="font-size:var(--text-xs);color:var(--color-neutral-400);">식약처 공공데이터 기반</span>
+    </div>
+  </div>
+</header>
+
+<!-- Main -->
+<main id="main-content">
+  <div class="container">
+
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title" class="hero-title">먹는 약, 함께 먹어도 될까요?</h1>
+      <p class="hero-sub">약 이름을 검색해 상호작용을 확인하세요</p>
+    </section>
+
+    <!-- Search -->
+    <section class="search-section" aria-label="약 이름 검색">
+      <div class="search-bar" role="search" aria-label="약 이름 검색">
+        <div class="search-input-wrapper" id="search-wrapper" data-state="SEARCH_IDLE">
+          <!-- 아이콘 (상태에 따라 JS로 교체) -->
+          <span class="search-icon" id="search-icon" aria-hidden="true">
+            <!-- Search icon default -->
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-3.5-3.5"/></svg>
+          </span>
+
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="약 이름을 입력하세요 (예: 타이레놀, 아스피린)"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            autofocus
+            aria-label="약 이름 검색"
+            aria-autocomplete="list"
+            aria-controls="search-dropdown"
+            aria-expanded="false"
+            aria-activedescendant=""
+            role="combobox"
+          />
+
+          <button class="search-clear" id="search-clear" type="button" aria-label="검색어 지우기">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13"/></svg>
+          </button>
+
+          <button class="search-submit" type="button" id="search-submit" aria-label="검색 실행">검색</button>
+        </div>
+
+        <!-- Dropdown -->
+        <ul id="search-dropdown" class="search-dropdown" role="listbox" aria-label="검색 결과"></ul>
+
+        <!-- Error area -->
+        <div id="search-error-area" class="search-error-area" role="alert" aria-live="polite" aria-atomic="true"></div>
+      </div>
+    </section>
+
+    <!-- Chip Section -->
+    <section class="chip-section" id="chip-section" aria-label="추가된 약 목록" style="display:none;">
+      <div class="chip-section-header">
+        <span class="chip-section-label">
+          <span id="chip-count">0</span>개 약 추가됨
+        </span>
+        <button class="chip-clear-all" id="chip-clear-all" type="button">전체 삭제</button>
+      </div>
+      <ul class="chip-list" id="chip-list" role="list" aria-label="추가된 약 목록"></ul>
+    </section>
+
+    <!-- Analyze -->
+    <section class="analyze-section" aria-label="상호작용 분석">
+      <div class="analyze-hint" id="analyze-hint">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 11V8m0-3h.01"/></svg>
+        <span id="analyze-hint-text">약을 2개 이상 추가하면 상호작용을 분석합니다</span>
+      </div>
+      <button id="analyze-btn" type="button" disabled aria-label="약물 상호작용 분석하기">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8H3m7-5v12m5-9l-5 5-5-5"/></svg>
+        <span id="analyze-btn-text">상호작용 분석하기</span>
+      </button>
+    </section>
+
+    <!-- Results -->
+    <section id="results" aria-label="분석 결과" aria-live="polite"></section>
+
+  </div><!-- /container -->
+</main>
+
+<!-- Footer -->
+<footer class="site-footer" role="contentinfo">
+  <div class="container">
+    <div class="footer-inner">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 11V8m0-3h.01"/></svg>
+      <p class="footer-text">
+        본 서비스는 식약처 공공데이터를 기반으로 하며 의사·약사의 의료 조언을 대체하지 않습니다.
+        · 식약처 DUR 데이터 기준 · WCAG 2.1 AA
+      </p>
+    </div>
+  </div>
+</footer>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SVG Icon Sprites (inline — no external dependency)
+     ═══════════════════════════════════════════════════════ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" id="icon-sprites">
+  <!-- Search -->
+  <symbol id="icon-search" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-3.5-3.5"/>
+  </symbol>
+  <!-- Loader2 -->
+  <symbol id="icon-loader" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" stroke-dasharray="25 75" stroke-dashoffset="0"/>
+  </symbol>
+  <!-- SearchX -->
+  <symbol id="icon-search-x" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="8" r="5"/><path d="M17 17l-3.5-3.5M11 5l-6 6M5 5l6 6"/>
+  </symbol>
+  <!-- CheckCircle2 (safe) -->
+  <symbol id="icon-check-circle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="8"/><path d="M6 10l3 3 5-5"/>
+  </symbol>
+  <!-- AlertTriangle (caution) -->
+  <symbol id="icon-alert-triangle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 2L2 18h16L10 2z"/><path d="M10 8v4m0 3h.01"/>
+  </symbol>
+  <!-- OctagonAlert (danger) -->
+  <symbol id="icon-octagon-alert" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 2h7l4.5 4.5v7L13.5 18h-7L2 13.5v-7L6.5 2z"/><path d="M10 7v4m0 3h.01"/>
+  </symbol>
+  <!-- Ban (forbidden) -->
+  <symbol id="icon-ban" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="8"/><path d="M4 4l12 12"/>
+  </symbol>
+  <!-- ServerCrash (system error) -->
+  <symbol id="icon-server-crash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 4h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M4 14h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4a1 1 0 011-1z"/><path d="M8 9h.01M8 19h.01"/><path d="M13 3l-2 5h3l-2 5"/>
+  </symbol>
+  <!-- TriangleAlert (user error) -->
+  <symbol id="icon-triangle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2L2 22h20L12 2z"/><path d="M12 9v5m0 4h.01"/>
+  </symbol>
+  <!-- Pill -->
+  <symbol id="icon-pill" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 3a5 5 0 00-7 7l8 8a5 5 0 007-7L10 3z"/><path d="M8.5 11.5l3-3"/>
+  </symbol>
+  <!-- ArrowLeftRight -->
+  <symbol id="icon-arrow-lr" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 8h14M11 4l4 4-4 4M5 12L1 8l4-4"/>
+  </symbol>
+  <!-- X -->
+  <symbol id="icon-x" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <path d="M1 1l10 10M11 1L1 11"/>
+  </symbol>
+  <!-- ExternalLink -->
+  <symbol id="icon-external" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 2H2a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V8"/><path d="M9 1h4v4M13 1L7 7"/>
+  </symbol>
+  <!-- Info -->
+  <symbol id="icon-info" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="8" r="6"/><path d="M8 11V8m0-3h.01"/>
+  </symbol>
+  <!-- RefreshCw -->
+  <symbol id="icon-refresh" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 4v4h4M15 12V8h-4"/><path d="M13.5 6A6 6 0 1014 10"/>
+  </symbol>
+  <!-- Plus -->
+  <symbol id="icon-plus" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <path d="M8 2v12M2 8h12"/>
+  </symbol>
+</svg>
+
+<script>
+'use strict';
+
+/* ── SVG helper ─────────────────────────────────────────────── */
+function svg(id, cls='', size=20) {
+  return `<svg width="${size}" height="${size}" class="${cls}" aria-hidden="true"><use href="#icon-${id}"/></svg>`;
+}
+
+/* ── State ──────────────────────────────────────────────────── */
+const state = {
+  drugs: [],          // { itemSeq, drugName, company, form, ingredients }
+  searchResults: [],
+  ddActiveIdx: -1,
+  searching: false,
+  analyzing: false,
+  searchQuery: '',
+};
+
+/* ── DOM refs ───────────────────────────────────────────────── */
+const $searchInput   = document.getElementById('search-input');
+const $searchWrapper = document.getElementById('search-wrapper');
+const $searchIcon    = document.getElementById('search-icon');
+const $searchClear   = document.getElementById('search-clear');
+const $searchDropdown= document.getElementById('search-dropdown');
+const $searchError   = document.getElementById('search-error-area');
+const $chipSection   = document.getElementById('chip-section');
+const $chipList      = document.getElementById('chip-list');
+const $chipCount     = document.getElementById('chip-count');
+const $chipClearAll  = document.getElementById('chip-clear-all');
+const $analyzeBtn    = document.getElementById('analyze-btn');
+const $analyzeBtnTxt = document.getElementById('analyze-btn-text');
+const $analyzeHint   = document.getElementById('analyze-hint');
+const $analyzeHintTxt= document.getElementById('analyze-hint-text');
+const $results       = document.getElementById('results');
+const $searchStatus  = document.getElementById('search-status');
+const $analysisStatus= document.getElementById('analysis-status');
+const $systemAlert   = document.getElementById('system-alert');
+const $toastContainer= document.getElementById('toast-container');
+
+/* ── Debounce ───────────────────────────────────────────────── */
+let debTimer = null;
+function debounce(fn, ms) {
+  clearTimeout(debTimer);
+  debTimer = setTimeout(fn, ms);
+}
+
+/* ── Icon state in search ───────────────────────────────────── */
+const SEARCH_ICONS = {
+  SEARCH_IDLE:       `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-3.5-3.5"/></svg>`,
+  SEARCH_TYPING:     `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--color-brand-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-3.5-3.5"/></svg>`,
+  SEARCH_LOADING:    `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--color-brand-500)" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="animation:spin 1s linear infinite"><path d="M10 2a8 8 0 010 16A8 8 0 0110 2z" stroke-dasharray="30 70"/></svg>`,
+  SEARCH_SUCCESS:    `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--color-brand-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M17 17l-3.5-3.5"/></svg>`,
+  SEARCH_EMPTY:      `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--color-neutral-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5"/><path d="M17 17l-3.5-3.5M11 5l-6 6M5 5l6 6"/></svg>`,
+  SEARCH_USER_ERROR: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--color-user-error-icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2L2 18h16L10 2z"/><path d="M10 8v4m0 3h.01"/></svg>`,
+  SEARCH_SYS_ERROR:  `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-sys-error-icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M4 14h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4a1 1 0 011-1z"/><path d="M13 3l-2 5h3l-2 5"/></svg>`,
+};
+
+function setSearchState(s) {
+  $searchWrapper.dataset.state = s;
+  $searchIcon.innerHTML = SEARCH_ICONS[s] || SEARCH_ICONS.SEARCH_IDLE;
+}
+
+/* ── Toast ──────────────────────────────────────────────────── */
+function showToast(msg, icon='info', duration=3500) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `${svg(icon)} <span>${escapeHtml(msg)}</span>`;
+  $toastContainer.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+/* ── Escape HTML ────────────────────────────────────────────── */
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Highlight match in drug name ───────────────────────────── */
+function highlightMatch(text, query) {
+  if (!query) return escapeHtml(text);
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx < 0) return escapeHtml(text);
+  return escapeHtml(text.slice(0, idx)) +
+    `<em>${escapeHtml(text.slice(idx, idx + query.length))}</em>` +
+    escapeHtml(text.slice(idx + query.length));
+}
+
+/* ── Dropdown ───────────────────────────────────────────────── */
+function openDropdown(items, query) {
+  state.searchResults = items;
+  state.ddActiveIdx   = -1;
+  $searchDropdown.innerHTML = '';
+
+  if (items.length === 0) {
+    $searchDropdown.innerHTML = `<li class="dd-empty">${svg('search-x','',20)}<span>검색 결과가 없습니다</span></li>`;
+    setSearchState('SEARCH_EMPTY');
+    $searchStatus.textContent = '검색 결과가 없습니다';
+  } else {
+    items.forEach((drug, i) => {
+      const li = document.createElement('li');
+      li.className = 'dd-item';
+      li.role = 'option';
+      li.id = `dd-option-${i}`;
+      li.setAttribute('aria-selected', 'false');
+      const ingStr = drug.ingredients.map(x => x.name).join(', ');
+      li.innerHTML = `
+        <span class="dd-item-icon">${svg('pill','',16)}</span>
+        <span class="dd-item-name">${highlightMatch(drug.drugName, query)}</span>
+        ${ingStr ? `<span class="dd-item-sub">${escapeHtml(ingStr.slice(0,30))}</span>` : ''}
+      `;
+      li.addEventListener('click', () => selectDrug(drug));
+      li.addEventListener('mousedown', e => e.preventDefault()); // prevent blur before click
+      $searchDropdown.appendChild(li);
+    });
+    setSearchState('SEARCH_SUCCESS');
+    $searchStatus.textContent = `검색 결과 ${items.length}건`;
+  }
+
+  $searchDropdown.classList.add('open');
+  $searchInput.setAttribute('aria-expanded', 'true');
+}
+
+function closeDropdown() {
+  $searchDropdown.classList.remove('open');
+  $searchInput.setAttribute('aria-expanded', 'false');
+  $searchInput.setAttribute('aria-activedescendant', '');
+  state.ddActiveIdx = -1;
+}
+
+function moveDdFocus(dir) {
+  const items = $searchDropdown.querySelectorAll('.dd-item[role="option"]');
+  if (!items.length) return;
+  let idx = state.ddActiveIdx + dir;
+  if (idx < 0) idx = items.length - 1;
+  if (idx >= items.length) idx = 0;
+  state.ddActiveIdx = idx;
+  items.forEach((el, i) => {
+    el.setAttribute('aria-selected', i === idx ? 'true' : 'false');
+    if (i === idx) {
+      el.scrollIntoView({ block: 'nearest' });
+      $searchInput.setAttribute('aria-activedescendant', el.id);
+    }
+  });
+}
+
+/* ── Search API ─────────────────────────────────────────────── */
+let searchAbort = null;
+async function performSearch(query) {
+  if (!query || query.length < 1) {
+    closeDropdown();
+    clearSearchError();
+    setSearchState('SEARCH_IDLE');
+    return;
+  }
+  state.searching = true;
+  setSearchState('SEARCH_LOADING');
+  clearSearchError();
+  if (searchAbort) searchAbort.abort();
+  searchAbort = new AbortController();
+
+  try {
+    const res = await fetch(`/api/drugs/search?q=${encodeURIComponent(query)}`, {
+      signal: searchAbort.signal
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (body.error === 'user_error') {
+        showSearchUserError(body.message || '검색어를 확인해주세요', query);
+      } else {
+        showSearchSysError(body.message || '검색 서비스 오류');
+      }
+      return;
+    }
+    const data = await res.json();
+    const results = data.results || [];
+    if (results.length === 0) {
+      showSearchUserError(`'${query}'에 해당하는 약을 찾지 못했습니다`, query);
+    } else {
+      clearSearchError();
+      openDropdown(results, query);
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    showSearchSysError('검색 서비스에 연결할 수 없습니다');
+  } finally {
+    state.searching = false;
+  }
+}
+
+function clearSearchError() {
+  $searchError.innerHTML = '';
+}
+
+function showSearchUserError(msg, query) {
+  closeDropdown();
+  setSearchState('SEARCH_USER_ERROR');
+  $searchError.innerHTML = `
+    <div class="error-guide error-guide--user" role="alert" aria-live="polite">
+      <div class="error-guide-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 22h20L12 2z"/><path d="M12 9v5m0 4h.01"/></svg>
+      </div>
+      <div class="error-guide-content">
+        <p class="error-guide-title">검색어를 확인해주세요</p>
+        <p class="error-guide-desc">${escapeHtml(msg)}<br>한글·영문 약 이름 또는 성분명으로 검색하세요.</p>
+        <div class="error-guide-examples">
+          <span class="example-label">검색 예시</span>
+          <button class="example-chip" type="button">타이레놀</button>
+          <button class="example-chip" type="button">아스피린</button>
+          <button class="example-chip" type="button">아세트아미노펜</button>
+          <button class="example-chip" type="button">와파린</button>
+        </div>
+      </div>
+    </div>`;
+  $searchError.querySelectorAll('.example-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $searchInput.value = btn.textContent;
+      clearSearchError();
+      setSearchState('SEARCH_TYPING');
+      $searchClear.classList.add('visible');
+      performSearch(btn.textContent);
+    });
+  });
+}
+
+function showSearchSysError(msg) {
+  closeDropdown();
+  setSearchState('SEARCH_SYS_ERROR');
+  $searchError.innerHTML = `
+    <div class="error-guide error-guide--system" role="alert" aria-live="assertive">
+      <div class="error-guide-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M4 14h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4a1 1 0 011-1z"/><path d="M13 3l-2 5h3l-2 5"/></svg>
+      </div>
+      <div class="error-guide-content">
+        <p class="error-guide-title">검색 서비스 오류가 발생했습니다</p>
+        <p class="error-guide-desc">${escapeHtml(msg)}<br>잠시 후 다시 시도해주세요.</p>
+        <div class="error-guide-actions">
+          <button class="btn btn--primary" type="button" id="retry-search-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4v4h4M15 12V8h-4"/><path d="M13.5 6A6 6 0 1014 10"/></svg>
+            다시 시도
+          </button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('retry-search-btn')?.addEventListener('click', () => {
+    clearSearchError();
+    performSearch($searchInput.value.trim());
+  });
+  $systemAlert.textContent = '검색 서비스 오류가 발생했습니다. 다시 시도해주세요.';
+}
+
+/* ── Drug selection ─────────────────────────────────────────── */
+function selectDrug(drug) {
+  // 중복 체크
+  if (state.drugs.find(d => d.itemSeq === drug.itemSeq)) {
+    showToast('이미 추가된 약입니다', 'info');
+    closeDropdown();
+    clearInput();
+    return;
+  }
+  // 최대 10개
+  if (state.drugs.length >= 10) {
+    showToast('최대 10개까지 분석 가능합니다', 'alert-triangle');
+    closeDropdown();
+    clearInput();
+    return;
+  }
+  state.drugs.push(drug);
+  closeDropdown();
+  clearInput();
+  clearSearchError();
+  setSearchState('SEARCH_IDLE');
+  renderChips();
+  updateAnalyzeBtn();
+  // hide results on new drug add
+  hideResults();
+}
+
+function clearInput() {
+  $searchInput.value = '';
+  $searchClear.classList.remove('visible');
+}
+
+/* ── Chips ──────────────────────────────────────────────────── */
+function renderChips() {
+  if (state.drugs.length === 0) {
+    $chipSection.style.display = 'none';
+    return;
+  }
+  $chipSection.style.display = '';
+  $chipCount.textContent = state.drugs.length;
+  $chipList.innerHTML = state.drugs.map((d, i) => `
+    <li>
+      <div class="drug-chip" data-state="CHIP_DEFAULT" role="listitem"
+           aria-label="${escapeHtml(d.drugName)}. 제거하려면 Delete 또는 Backspace"
+           tabindex="0"
+           data-idx="${i}">
+        <span class="chip-pill-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3a5 5 0 00-7 7l8 8a5 5 0 007-7L10 3z"/><path d="M8.5 11.5l3-3"/></svg>
+        </span>
+        <span class="chip-name" title="${escapeHtml(d.drugName)}">${escapeHtml(d.drugName)}</span>
+        <button class="chip-remove" type="button"
+                aria-label="${escapeHtml(d.drugName)} 제거"
+                data-idx="${i}">
+          <span aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 1l10 10M11 1L1 11"/></svg></span>
+        </button>
+      </div>
+    </li>
+  `).join('');
+
+  // Remove button events
+  $chipList.querySelectorAll('.chip-remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      removeDrugAt(parseInt(btn.dataset.idx));
+    });
+  });
+
+  // Keyboard on chip
+  $chipList.querySelectorAll('.drug-chip').forEach(chip => {
+    chip.addEventListener('keydown', e => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        removeDrugAt(parseInt(chip.dataset.idx));
+      }
+    });
+  });
+}
+
+function removeDrugAt(idx) {
+  const chips = $chipList.querySelectorAll('.drug-chip');
+  const chip = chips[idx];
+  if (chip) {
+    chip.dataset.state = 'CHIP_REMOVING';
+    setTimeout(() => {
+      state.drugs.splice(idx, 1);
+      renderChips();
+      updateAnalyzeBtn();
+      hideResults();
+    }, 100);
+  }
+}
+
+/* ── Analyze button state ───────────────────────────────────── */
+function updateAnalyzeBtn() {
+  const n = state.drugs.length;
+  if (n >= 2) {
+    $analyzeBtn.disabled = false;
+    $analyzeBtn.classList.add('active');
+    $analyzeBtn.classList.remove('loading');
+    $analyzeBtnTxt.textContent = '상호작용 분석하기';
+    $analyzeBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M10 4l6 6-6 6"/></svg>
+      <span id="analyze-btn-text">상호작용 분석하기</span>
+    `;
+    $analyzeHintTxt.textContent = `${n}개 약의 상호작용을 분석합니다 (${n*(n-1)/2}가지 조합)`;
+  } else if (n === 1) {
+    $analyzeBtn.disabled = true;
+    $analyzeBtn.classList.remove('active', 'loading');
+    $analyzeBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M10 4l6 6-6 6"/></svg>
+      <span>약을 1개 더 추가하면 분석 가능합니다</span>
+    `;
+    $analyzeHintTxt.textContent = '약을 1개 더 추가하면 분석 가능합니다';
+  } else {
+    $analyzeBtn.disabled = true;
+    $analyzeBtn.classList.remove('active', 'loading');
+    $analyzeBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M10 4l6 6-6 6"/></svg>
+      <span>상호작용 분석하기</span>
+    `;
+    $analyzeHintTxt.textContent = '약을 2개 이상 추가하면 상호작용을 분석합니다';
+  }
+}
+
+/* ── Results ────────────────────────────────────────────────── */
+function hideResults() {
+  $results.classList.remove('visible');
+  $results.innerHTML = '';
+}
+
+const LEVEL_CONFIG = {
+  safe:      { label: '안전',     sub: '주요 상호작용이 없습니다',    iconId: 'check-circle', cls: 'safe' },
+  caution:   { label: '주의',     sub: '복용 전 약사 확인을 권장합니다', iconId: 'alert-triangle', cls: 'caution' },
+  danger:    { label: '위험',     sub: '의사 처방·상담이 필요합니다',  iconId: 'octagon-alert', cls: 'danger' },
+  forbidden: { label: '금기',     sub: '병용을 금지합니다',            iconId: 'ban',            cls: 'forbidden' },
+};
+
+function renderResults(data) {
+  const cfg = LEVEL_CONFIG[data.overallLevel] || LEVEL_CONFIG.safe;
+  const hasSevere = ['danger','forbidden'].includes(data.overallLevel);
+
+  // Drug summary tags
+  const drugTags = state.drugs.map(d => `
+    <span class="result-drug-tag">
+      <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3a5 5 0 00-7 7l8 8a5 5 0 007-7L10 3z"/><path d="M8.5 11.5l3-3"/></svg>
+      ${escapeHtml(d.drugName)}
+    </span>
+  `).join('');
+
+  // Medical warning for L3/L4
+  const warningBanner = hasSevere ? `
+    <div class="medical-warning" role="note" aria-label="의료 주의사항">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 11V8m0-3h.01"/></svg>
+      <p>이 결과는 참고용입니다. 의사·약사와 반드시 상담하세요.</p>
+    </div>` : '';
+
+  // Pair cards
+  const pairCards = (data.pairs || []).map(pair => {
+    const pcfg = LEVEL_CONFIG[pair.level] || LEVEL_CONFIG.safe;
+    const conf = typeof pair.confidence === 'number' && !isNaN(pair.confidence) ? pair.confidence : null;
+    const isFallback = pair.sourceType === 'rule' && pair.durBasis === null;
+
+    return `
+      <article class="interaction-card interaction-card--${pcfg.cls}"
+               aria-label="${escapeHtml(pair.drugAName)}과 ${escapeHtml(pair.drugBName)} 상호작용: ${pcfg.label}">
+        <div class="card-header">
+          <div class="card-drug-pair">
+            <span class="drug-pair-name" title="${escapeHtml(pair.drugAName)}">${escapeHtml(pair.drugAName)}</span>
+            <span class="pair-arrow" aria-label="와">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 8h14M11 4l4 4-4 4M5 12L1 8l4-4"/></svg>
+            </span>
+            <span class="drug-pair-name" title="${escapeHtml(pair.drugBName)}">${escapeHtml(pair.drugBName)}</span>
+          </div>
+          <span class="risk-badge risk-badge--${pcfg.cls}" role="img" aria-label="위험도: ${pcfg.label}">
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#icon-${pcfg.iconId}"/></svg>
+            ${pcfg.label}
+          </span>
+        </div>
+        <p class="card-description">${escapeHtml(pair.explanation || '상호작용 정보가 없습니다.')}</p>
+        <div class="card-footer">
+          ${pair.durBasis ? `
+            <a class="card-source-link" href="https://nedrug.mfds.go.kr/pbp/CCBBB01/getItemDetail" target="_blank" rel="noopener noreferrer" aria-label="식약처 상호작용 근거 새 탭에서 보기">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2H2a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V8"/><path d="M9 1h4v4M13 1L7 7"/></svg>
+              식약처 근거 보기
+            </a>` : ''}
+          ${isFallback && conf !== null && conf === 0 ? `
+            <span class="fallback-badge" aria-label="규칙 기반 분석 결과">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 11V8m0-3h.01"/></svg>
+              규칙 기반 결과
+            </span>` : ''}
+          ${pair.sourceType === 'ml' ? `
+            <span class="fallback-badge" aria-label="AI 분석 결과">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 11V8m0-3h.01"/></svg>
+              AI 분석
+            </span>` : ''}
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  // isFallback global banner
+  const fallbackGlobal = data.isFallback ? `
+    <div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);background:var(--color-neutral-100);border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--color-neutral-500);margin-bottom:var(--space-4);">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 11V8m0-3h.01"/></svg>
+      ML 추론 불가 — 식약처 DUR 규칙 기반 결과입니다
+    </div>` : '';
+
+  $results.innerHTML = `
+    <!-- Drug summary -->
+    <div class="result-drug-summary" aria-label="분석된 약 목록">
+      ${drugTags}
+    </div>
+
+    <!-- Overall banner -->
+    <div class="overall-banner overall-banner--${cfg.cls}" role="region" aria-label="종합 판정">
+      <div class="overall-icon" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <use href="#icon-${cfg.iconId}"/>
+        </svg>
+      </div>
+      <div id="overall" aria-label="종합 위험도: ${cfg.label}">${cfg.label}</div>
+      <div class="overall-sub">${cfg.sub}</div>
+    </div>
+
+    ${warningBanner}
+    ${fallbackGlobal}
+
+    <!-- Result actions -->
+    <div class="result-actions">
+      <button class="btn btn--ghost" type="button" id="btn-reset">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4v4h4M15 12V8h-4"/><path d="M13.5 6A6 6 0 1014 10"/></svg>
+        다시 분석
+      </button>
+      <button class="btn btn--ghost" type="button" id="btn-edit">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+        약 목록 편집
+      </button>
+    </div>
+
+    <!-- Pair cards -->
+    ${data.pairs && data.pairs.length > 0 ? `
+      <div class="results-section-title">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 8h14M11 4l4 4-4 4M5 12L1 8l4-4"/></svg>
+        상호작용 상세 (${data.pairs.length}건)
+      </div>
+      <div class="result-grid" aria-label="상호작용 상세 목록">
+        ${pairCards}
+      </div>` : `
+      <p style="text-align:center;color:var(--color-neutral-500);padding:var(--space-8) 0;font-size:var(--text-sm);">
+        상호작용 데이터가 없습니다. 의사·약사와 상담하세요.
+      </p>`}
+
+    <!-- Footer disclaimer in results -->
+    <div style="margin-top:var(--space-8);padding-top:var(--space-4);border-top:1px solid var(--color-neutral-200);font-size:var(--text-xs);color:var(--color-neutral-400);line-height:var(--leading-relaxed);">
+      본 결과는 식약처 DUR 공공데이터 기반이며 의료 진단·처방을 대체하지 않습니다. 반드시 의사·약사와 상담하세요.
+    </div>
+  `;
+
+  $results.classList.add('visible');
+
+  // Btn events
+  document.getElementById('btn-reset')?.addEventListener('click', () => {
+    state.drugs = [];
+    renderChips();
+    updateAnalyzeBtn();
+    hideResults();
+    $searchInput.focus();
+  });
+  document.getElementById('btn-edit')?.addEventListener('click', () => {
+    hideResults();
+    $searchInput.focus();
+    $chipSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // aria-live
+  $analysisStatus.textContent = `분석 완료. 종합 판정: ${cfg.label}. ${data.pairs.length}건 상호작용 발견.`;
+}
+
+/* ── Analyze ────────────────────────────────────────────────── */
+async function runAnalysis() {
+  if (state.drugs.length < 2 || state.analyzing) return;
+  state.analyzing = true;
+
+  // Loading state
+  $analyzeBtn.disabled = true;
+  $analyzeBtn.classList.remove('active');
+  $analyzeBtn.classList.add('loading');
+  $analyzeBtn.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin 1s linear infinite" aria-hidden="true"><path d="M10 2a8 8 0 010 16A8 8 0 0110 2z" stroke-dasharray="30 70"/></svg>
+    <span>분석 중...</span>
+  `;
+  $analysisStatus.textContent = '분석 중...';
+  hideResults();
+
+  try {
+    const res = await fetch('/api/interactions/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drugs: state.drugs }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (body.error === 'user_error') {
+        showAnalysisUserError(body.message || '요청 오류가 발생했습니다');
+      } else {
+        showAnalysisSysError(body.message || '분석 서비스 오류가 발생했습니다');
+      }
+      return;
+    }
+
+    const data = await res.json();
+    renderResults(data);
+
+    // Scroll to results
+    $results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    showAnalysisSysError('분석 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+  } finally {
+    state.analyzing = false;
+    updateAnalyzeBtn();
+  }
+}
+
+function showAnalysisUserError(msg) {
+  $results.innerHTML = `
+    <div class="error-guide error-guide--user" role="alert">
+      <div class="error-guide-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 22h20L12 2z"/><path d="M12 9v5m0 4h.01"/></svg>
+      </div>
+      <div class="error-guide-content">
+        <p class="error-guide-title">입력 오류</p>
+        <p class="error-guide-desc">${escapeHtml(msg)}</p>
+      </div>
+    </div>`;
+  $results.classList.add('visible');
+}
+
+function showAnalysisSysError(msg) {
+  $results.innerHTML = `
+    <div class="error-guide error-guide--system" role="alert">
+      <div class="error-guide-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M4 14h16a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4a1 1 0 011-1z"/><path d="M13 3l-2 5h3l-2 5"/></svg>
+      </div>
+      <div class="error-guide-content">
+        <p class="error-guide-title">분석 서비스 오류가 발생했습니다</p>
+        <p class="error-guide-desc">${escapeHtml(msg)}<br>입력하신 약 목록은 유지됩니다.</p>
+        <div class="error-guide-actions">
+          <button class="btn btn--primary" type="button" id="retry-analyze-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4v4h4M15 12V8h-4"/><path d="M13.5 6A6 6 0 1014 10"/></svg>
+            다시 시도
+          </button>
+          <button class="btn btn--ghost" type="button" id="home-btn">홈으로</button>
+        </div>
+      </div>
+    </div>`;
+  $results.classList.add('visible');
+  document.getElementById('retry-analyze-btn')?.addEventListener('click', runAnalysis);
+  document.getElementById('home-btn')?.addEventListener('click', () => {
+    state.drugs = [];
+    renderChips();
+    updateAnalyzeBtn();
+    hideResults();
+    $searchInput.focus();
+  });
+  $systemAlert.textContent = '분석 서비스 오류가 발생했습니다. 다시 시도해주세요.';
+}
+
+/* ── Search Input Events ────────────────────────────────────── */
+$searchInput.addEventListener('input', () => {
+  const q = $searchInput.value.trim();
+  state.searchQuery = q;
+  $searchClear.classList.toggle('visible', q.length > 0);
+
+  if (!q) {
+    closeDropdown();
+    clearSearchError();
+    setSearchState('SEARCH_IDLE');
+    return;
+  }
+  setSearchState('SEARCH_TYPING');
+  debounce(() => performSearch(q), 280);
+});
+
+$searchInput.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if ($searchDropdown.classList.contains('open')) moveDdFocus(1);
+    else performSearch($searchInput.value.trim());
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    moveDdFocus(-1);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (state.ddActiveIdx >= 0 && state.searchResults[state.ddActiveIdx]) {
+      selectDrug(state.searchResults[state.ddActiveIdx]);
+    } else {
+      performSearch($searchInput.value.trim());
+    }
+  } else if (e.key === 'Escape') {
+    closeDropdown();
+    clearSearchError();
+    setSearchState($searchInput.value ? 'SEARCH_TYPING' : 'SEARCH_IDLE');
+  }
+});
+
+$searchInput.addEventListener('blur', () => {
+  // Delay close so click on dd-item registers
+  setTimeout(closeDropdown, 200);
+});
+
+$searchClear.addEventListener('click', () => {
+  $searchInput.value = '';
+  $searchClear.classList.remove('visible');
+  closeDropdown();
+  clearSearchError();
+  setSearchState('SEARCH_IDLE');
+  $searchInput.focus();
+});
+
+$searchInput.addEventListener('focus', () => {
+  if ($searchInput.value.trim() && state.searchResults.length > 0) {
+    $searchDropdown.classList.add('open');
+    $searchInput.setAttribute('aria-expanded', 'true');
+  }
+});
+
+/* ── Submit button ──────────────────────────────────────────── */
+document.getElementById('search-submit').addEventListener('click', () => {
+  const q = $searchInput.value.trim();
+  if (q) performSearch(q);
+});
+
+/* ── Analyze button ─────────────────────────────────────────── */
+$analyzeBtn.addEventListener('click', () => {
+  if (!$analyzeBtn.disabled) runAnalysis();
+});
+
+/* ── Clear all chips ────────────────────────────────────────── */
+$chipClearAll.addEventListener('click', () => {
+  state.drugs = [];
+  renderChips();
+  updateAnalyzeBtn();
+  hideResults();
+});
+
+/* ── Init ───────────────────────────────────────────────────── */
+updateAnalyzeBtn();
+$searchInput.focus();
+</script>
+</body>
+</html>
